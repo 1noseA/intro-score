@@ -44,7 +44,22 @@ cd intro-score
 npm install
 \`\`\`
 
-3. 環境変数を設定
+3. Supabaseプロジェクトのセットアップ
+
+**Supabaseプロジェクトを作成:**
+1. [Supabase](https://supabase.com)にアクセスしてプロジェクトを作成
+2. プロジェクトの設定からURL・API Keyを取得
+
+**データベースマイグレーション:**
+\`\`\`bash
+# Supabase SQLエディタで以下のファイルを順番に実行
+# 1. supabase/migrations/001_initial_schema.sql
+# 2. supabase/migrations/002_rls_policies.sql  
+# 3. supabase/migrations/003_preset_data.sql
+# 4. supabase/migrations/004_storage_setup.sql
+\`\`\`
+
+4. 環境変数を設定
 \`\`\`bash
 cp .env.local.example .env.local
 \`\`\`

@@ -26,16 +26,19 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
 
     try {
       if (mode === 'signup') {
-        await db.signUp(email, password, displayName || undefined)
+        const result = await db.signUp(email, password, displayName || undefined)
+        console.log('SignUp result:', result)
         setMessage('確認メールを送信しました。メールを確認してアカウントを有効化してください。')
       } else {
-        await db.signIn(email, password)
+        const result = await db.signIn(email, password)
+        console.log('SignIn result:', result)
         setMessage('ログインしました')
         onSuccess?.()
       }
     } catch (err) {
+      console.error('Auth error:', err)
       const error = err as Error
-      setError(error.message)
+      setError(`エラーが発生しました: ${error.message}`)
     } finally {
       setLoading(false)
     }

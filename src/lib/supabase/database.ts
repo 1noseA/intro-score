@@ -10,6 +10,8 @@ export class DatabaseClient {
   private supabase = createClient()
 
   async signUp(email: string, password: string, displayName?: string) {
+    console.log('SignUp attempt:', { email, hasPassword: !!password, displayName })
+    
     const { data, error } = await this.supabase.auth.signUp({
       email,
       password,
@@ -20,7 +22,12 @@ export class DatabaseClient {
       }
     })
     
-    if (error) throw error
+    console.log('SignUp response:', { data, error })
+    
+    if (error) {
+      console.error('SignUp error details:', error)
+      throw error
+    }
     return data
   }
 

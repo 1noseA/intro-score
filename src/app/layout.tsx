@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'intro-score - 音声からXプロフィール生成',
-  description: 'エンジニアの自己紹介音声からX(Twitter)プロフィールを自動生成するシンプルなアプリケーション',
+  title: 'intro-score - AI音声分析による自己紹介スキル向上',
+  description: 'エンジニアの自己紹介音声を分析し、AI評価とフィードバックで話し方スキルを向上させるアプリケーション',
 }
 
 export default function RootLayout({

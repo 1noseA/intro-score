@@ -16,9 +16,61 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const transcriptRef = useRef('')
+
+  const initializeSpeechRecognition = () => {
+    if (typeof window === 'undefined') return null
+    
+    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognitionClass) return null
+    
+    const recognition = new SpeechRecognitionClass()
+    
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'ja-JP'
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = ''
+      let interimTranscript = ''
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const resultTranscript = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          finalTranscript += resultTranscript
+        } else {
+          interimTranscript += resultTranscript
+        }
+      }
+
+      if (finalTranscript) {
+        transcriptRef.current += finalTranscript
+        setTranscript(transcriptRef.current)
+        onTranscriptChange(transcriptRef.current + interimTranscript)
+      } else {
+        onTranscriptChange(transcriptRef.current + interimTranscript)
+      }
+    }
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error)
+      setError(`音声認識エラー: ${event.error}`)
+    }
+
+    recognition.onend = () => {
+      if (isRecording) {
+        setTimeout(() => {
+          if (recognitionRef.current && isRecording) {
+            recognitionRef.current.start()
+          }
+        }, 100)
+      }
+    }
+
+    return recognition
+  }
 
   useEffect(() => {
-    // ブラウザサポートチェック（クライアントサイドのみ実行）
     if (typeof window === 'undefined') return
     
     const hasMediaRecorder = 'mediaDevices' in navigator && 'MediaRecorder' in window
@@ -27,45 +79,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     setIsSupported(hasMediaRecorder && hasSpeechRecognition)
 
     if (hasSpeechRecognition) {
-      // Speech Recognition の初期化
-      const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition
-      const recognition = new SpeechRecognitionClass()
-      
-      recognition.continuous = true
-      recognition.interimResults = true
-      recognition.lang = 'ja-JP'
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = ''
-        let interimTranscript = ''
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript
-          } else {
-            interimTranscript += transcript
-          }
-        }
-
-        const fullTranscript = transcript + finalTranscript
-        setTranscript(fullTranscript)
-        onTranscriptChange(fullTranscript + interimTranscript)
-      }
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Speech recognition error:', event.error)
-        setError(`音声認識エラー: ${event.error}`)
-      }
-
-      recognition.onend = () => {
-        if (isRecording) {
-          // 録音中に音声認識が停止した場合は再開
-          recognition.start()
-        }
-      }
-
-      recognitionRef.current = recognition
+      recognitionRef.current = initializeSpeechRecognition()
     }
 
     return () => {
@@ -76,7 +90,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
         mediaRecorderRef.current.stop()
       }
     }
-  }, [transcript, onTranscriptChange, isRecording])
+  }, [])
 
   const startRecording = async () => {
     try {
@@ -144,9 +158,16 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   }
 
   const clearTranscript = () => {
+    transcriptRef.current = ''
     setTranscript('')
     onTranscriptChange('')
     setError(null)
+    
+    // 音声認識をリセット
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      recognitionRef.current = initializeSpeechRecognition()
+    }
   }
 
   if (!isSupported) {

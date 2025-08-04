@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import VoiceRecorder from '@/components/VoiceRecorder'
 
 interface Evaluation {
   scores: {
@@ -16,21 +17,22 @@ interface Evaluation {
 }
 
 export default function Home() {
-  const [isRecording, setIsRecording] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [generatedProfile, setGeneratedProfile] = useState('')
   const [showProfileSection, setShowProfileSection] = useState(false)
 
-  const startRecording = () => {
-    setIsRecording(true)
-    // TODO: 音声録音機能を実装
+  const handleTranscriptChange = (newTranscript: string) => {
+    setTranscript(newTranscript)
+    // 評価結果をリセット（新しい文字起こしの場合）
+    if (evaluation) {
+      setEvaluation(null)
+    }
   }
 
-  const stopRecording = () => {
-    setIsRecording(false)
-    // TODO: 文字起こし処理を実装
-    setTranscript('はじめまして、田中太郎と申します。フロントエンドエンジニアとして3年間働いており、主にReactとTypeScriptを使用しています。最近はECサイトの開発でパフォーマンス改善に取り組んでおり、読み込み速度を30%向上させることができました。プライベートでは読書と映画鑑賞が趣味で、技術書を読んで新しい知識を身につけることを楽しんでいます。')
+  const handleRecordingStateChange = (recordingState: boolean) => {
+    // 録音状態の変更時の処理（必要に応じて実装）
+    console.log('Recording state changed:', recordingState)
   }
 
   const evaluateTranscript = async () => {
@@ -77,29 +79,17 @@ export default function Home() {
               {/* 録音セクション */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">1. 自己紹介を録音</h3>
-                <button
-                  onClick={isRecording ? stopRecording : startRecording}
-                  className={`px-8 py-4 rounded-full font-medium transition-colors ${
-                    isRecording 
-                      ? 'bg-red-500 text-white hover:bg-red-600' 
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  {isRecording ? '🔴 録音停止' : '🎤 録音開始'}
-                </button>
+                <VoiceRecorder 
+                  onTranscriptChange={handleTranscriptChange}
+                  onRecordingStateChange={handleRecordingStateChange}
+                />
               </div>
 
-              {/* 文字起こし結果 */}
+              {/* アクションボタン */}
               {transcript && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">2. 文字起こし結果</h3>
-                  <textarea
-                    value={transcript}
-                    onChange={(e) => setTranscript(e.target.value)}
-                    className="w-full p-4 border rounded-lg h-32 resize-none"
-                    placeholder="文字起こし結果がここに表示されます..."
-                  />
-                  <div className="mt-4 flex gap-4 justify-center">
+                  <h3 className="text-lg font-semibold mb-4">2. 分析・生成</h3>
+                  <div className="flex gap-4 justify-center">
                     <button
                       onClick={evaluateTranscript}
                       className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"

@@ -21,6 +21,8 @@ export default function Home() {
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [generatedProfile, setGeneratedProfile] = useState('')
   const [showProfileSection, setShowProfileSection] = useState(false)
+  const [isEvaluating, setIsEvaluating] = useState(false)
+  const [isGeneratingProfile, setIsGeneratingProfile] = useState(false)
 
   const handleTranscriptChange = (newTranscript: string) => {
     setTranscript(newTranscript)
@@ -36,28 +38,59 @@ export default function Home() {
   }
 
   const evaluateTranscript = async () => {
-    // TODO: AI評価APIを呼び出し
-    setEvaluation({
-      scores: {
-        friendship_score: 85,
-        work_together_score: 78,
-        total_score: 82.6
-      },
-      feedback: {
-        friendship_reason: "とても親しみやすい話し方で、自然な笑顔が伝わってきます。技術的な話も分かりやすく説明されており、一緒に過ごしたいと感じさせる魅力があります。",
-        work_reason: "技術スキルがしっかりしており、チームワークを大切にする姿勢が伝わります。ただし、もう少し具体的なプロジェクト経験を話すとより説得力が増すでしょう。",
-        improvement_suggestions: [
-          "具体的なプロジェクト事例を1-2個追加すると良いでしょう",
-          "技術選択の理由を簡潔に説明できると印象が向上します",
-          "チームでの役割や貢献をもう少し具体的に表現してみてください"
-        ]
+    if (!transcript.trim()) return
+    
+    setIsEvaluating(true)
+    try {
+      const response = await fetch('/api/evaluate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transcript }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'AI評価に失敗しました')
       }
-    })
+
+      const data = await response.json()
+      setEvaluation(data)
+    } catch (error) {
+      console.error('評価エラー:', error)
+      alert(error instanceof Error ? error.message : 'AI評価中にエラーが発生しました')
+    } finally {
+      setIsEvaluating(false)
+    }
   }
 
   const generateProfile = async () => {
-    // TODO: Xプロフィール生成APIを呼び出し
-    setGeneratedProfile('フロントエンドエンジニア3年目 ⚛️ React・TypeScript好き | ECサイト開発でパフォーマンス改善に取り組んでます | 読書と映画鑑賞が趣味 📚🎬')
+    if (!transcript.trim()) return
+    
+    setIsGeneratingProfile(true)
+    try {
+      const response = await fetch('/api/generate-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transcript }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'プロフィール生成に失敗しました')
+      }
+
+      const data = await response.json()
+      setGeneratedProfile(data.profile)
+    } catch (error) {
+      console.error('プロフィール生成エラー:', error)
+      alert(error instanceof Error ? error.message : 'プロフィール生成中にエラーが発生しました')
+    } finally {
+      setIsGeneratingProfile(false)
+    }
   }
 
   return (
@@ -92,9 +125,10 @@ export default function Home() {
                   <div className="flex gap-4 justify-center">
                     <button
                       onClick={evaluateTranscript}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                      disabled={isEvaluating}
+                      className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      🤖 AI評価実行
+                      {isEvaluating ? '🔄 評価中...' : '🤖 AI評価実行'}
                     </button>
                     <button
                       onClick={() => setShowProfileSection(!showProfileSection)}
@@ -157,9 +191,10 @@ export default function Home() {
                   {!generatedProfile ? (
                     <button
                       onClick={generateProfile}
-                      className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors"
+                      disabled={isGeneratingProfile}
+                      className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Xプロフィール生成
+                      {isGeneratingProfile ? '🔄 生成中...' : 'Xプロフィール生成'}
                     </button>
                   ) : (
                     <div className="bg-gray-50 p-4 rounded-lg border">

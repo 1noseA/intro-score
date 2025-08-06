@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import VoiceRecorder from '@/components/VoiceRecorder'
+import AIPersonaSelector, { AIPersona } from '@/components/AIPersonaSelector'
 
 interface VoiceAnalysis {
   clarity: number // 1-10点
@@ -42,6 +43,7 @@ export default function Home() {
   const [voiceAnalysis, setVoiceAnalysis] = useState<VoiceAnalysis | null>(null)
   const [voiceCharacteristics, setVoiceCharacteristics] = useState<VoiceCharacteristics | null>(null)
   const [isAnalyzingVoice, setIsAnalyzingVoice] = useState(false)
+  const [selectedPersona, setSelectedPersona] = useState<AIPersona | null>(null)
 
   const handleTranscriptChange = (newTranscript: string) => {
     setTranscript(newTranscript)
@@ -95,6 +97,11 @@ export default function Home() {
   const evaluateTranscript = async () => {
     if (!transcript.trim()) return
     
+    if (!selectedPersona) {
+      alert('評価者を選択してください')
+      return
+    }
+    
     setIsEvaluating(true)
     try {
       const response = await fetch('/api/evaluate', {
@@ -104,7 +111,8 @@ export default function Home() {
         },
         body: JSON.stringify({ 
           transcript,
-          voiceAnalysis 
+          voiceAnalysis,
+          aiPersona: selectedPersona
         }),
       })
 
@@ -184,11 +192,20 @@ export default function Home() {
             自己紹介を録音して、AI評価でコミュニケーションスキルを向上させましょう
           </p>
           
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto mb-8">
-            <div className="space-y-6">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-4xl mx-auto mb-8">
+            <div className="space-y-8">
+              {/* AI人格選択セクション */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">1. 評価者を選択</h3>
+                <AIPersonaSelector 
+                  selectedPersona={selectedPersona}
+                  onPersonaChange={setSelectedPersona}
+                />
+              </div>
+
               {/* 録音セクション */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">1. 自己紹介を録音</h3>
+                <h3 className="text-lg font-semibold mb-4">2. 自己紹介を録音</h3>
                 <VoiceRecorder 
                   onTranscriptChange={handleTranscriptChange}
                   onRecordingStateChange={handleRecordingStateChange}
@@ -199,7 +216,7 @@ export default function Home() {
               {/* アクションボタン */}
               {transcript && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">2. 分析・生成</h3>
+                  <h3 className="text-lg font-semibold mb-4">3. 分析・生成</h3>
                   <div className="flex gap-4 justify-center">
                     <button
                       onClick={evaluateTranscript}
@@ -298,7 +315,15 @@ export default function Home() {
               {/* AI評価結果 */}
               {evaluation && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">3. AI評価結果</h3>
+                  <h3 className="text-lg font-semibold mb-4">4. AI評価結果</h3>
+                  {selectedPersona && (
+                    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="text-sm text-blue-700">
+                        評価者: <span className="font-medium">{selectedPersona.name}</span>
+                      </div>
+                      <div className="text-xs text-blue-600 mt-1">{selectedPersona.description}</div>
+                    </div>
+                  )}
                   <div className="bg-gray-50 p-6 rounded-lg border space-y-4">
                     {/* スコア表示 */}
                     <div className={`grid ${evaluation.scores.voice_score ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-center`}>

@@ -5,7 +5,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
 export async function POST(request: NextRequest) {
   try {
-    const { transcript } = await request.json()
+    const { transcript, aiPersona } = await request.json()
 
     if (!transcript || transcript.trim().length === 0) {
       return NextResponse.json(
@@ -23,8 +23,15 @@ export async function POST(request: NextRequest) {
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
+    // AI人格設定
+    const personaPrompt = aiPersona && aiPersona.prompt 
+      ? `あなたは「${aiPersona.name}」として評価してください。${aiPersona.prompt}`
+      : 'あなたは経験豊富なエンジニアリングマネージャーとして評価してください。'
+
     const prompt = `
-以下はエンジニアの自己紹介の音声を文字起こししたものです。この自己紹介を評価してください。
+${personaPrompt}
+
+以下はエンジニアの自己紹介の音声を文字起こししたものです。この自己紹介をあなたの視点で評価してください。
 
 自己紹介文：
 "${transcript}"
@@ -34,7 +41,8 @@ export async function POST(request: NextRequest) {
 1. 仲良くなりたい度：親しみやすさ、人柄の良さ、コミュニケーション能力
 2. 一緒に働きたい度：技術力、信頼性、チームワーク、プロフェッショナル性
 
-また、それぞれのスコアの理由と具体的な改善提案を3つずつ提供してください。
+また、それぞれのスコアの理由と具体的な改善提案を3つ提供してください。
+評価理由と改善提案は、あなたの人格・視点に基づいて記述してください。
 
 回答形式（必ずこの形式で回答してください）：
 {
@@ -44,12 +52,12 @@ export async function POST(request: NextRequest) {
     "total_score": 数値
   },
   "feedback": {
-    "friendship_reason": "親しみやすさのスコア理由",
-    "work_reason": "仕事での魅力のスコア理由",
+    "friendship_reason": "親しみやすさのスコア理由（あなたの視点で）",
+    "work_reason": "仕事での魅力のスコア理由（あなたの視点で）",
     "improvement_suggestions": [
-      "改善提案1",
-      "改善提案2", 
-      "改善提案3"
+      "改善提案1（あなたらしいアドバイス）",
+      "改善提案2（あなたらしいアドバイス）", 
+      "改善提案3（あなたらしいアドバイス）"
     ]
   }
 }

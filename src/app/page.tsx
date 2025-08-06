@@ -10,6 +10,14 @@ interface VoiceAnalysis {
   stability: number // 1-10点
 }
 
+interface VoiceCharacteristics {
+  pitch: string // 高め/普通/低め
+  impression: string // 親しみやすい/落ち着いている等
+  characterDescription: string // 声の特徴的な表現
+  similarCelebrity?: string // 著名人・キャラクター類似性
+  overallComment: string // 総合的な声の印象コメント
+}
+
 interface Evaluation {
   scores: {
     friendship_score: number
@@ -32,6 +40,8 @@ export default function Home() {
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [isGeneratingProfile, setIsGeneratingProfile] = useState(false)
   const [voiceAnalysis, setVoiceAnalysis] = useState<VoiceAnalysis | null>(null)
+  const [voiceCharacteristics, setVoiceCharacteristics] = useState<VoiceCharacteristics | null>(null)
+  const [isAnalyzingVoice, setIsAnalyzingVoice] = useState(false)
 
   const handleTranscriptChange = (newTranscript: string) => {
     setTranscript(newTranscript)
@@ -49,6 +59,37 @@ export default function Home() {
   const handleVoiceAnalysis = (analysis: VoiceAnalysis) => {
     setVoiceAnalysis(analysis)
     console.log('Voice analysis:', analysis)
+  }
+
+  const analyzeVoiceCharacteristics = async () => {
+    if (!voiceAnalysis || !transcript.trim()) return
+    
+    setIsAnalyzingVoice(true)
+    try {
+      const response = await fetch('/api/analyze-voice-characteristics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          voiceAnalysis,
+          transcript 
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || '声質分析に失敗しました')
+      }
+
+      const data = await response.json()
+      setVoiceCharacteristics(data)
+    } catch (error) {
+      console.error('声質分析エラー:', error)
+      alert(error instanceof Error ? error.message : '声質分析中にエラーが発生しました')
+    } finally {
+      setIsAnalyzingVoice(false)
+    }
   }
 
   const evaluateTranscript = async () => {
@@ -208,11 +249,47 @@ export default function Home() {
                     </div>
                     <div className="text-center">
                       <div className="text-sm text-gray-600 mb-1">推奨話速: 300-400文字/分</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 mb-3">
                         {voiceAnalysis.speechRate < 250 && '⚠️ 少しゆっくりすぎるかもしれません'}
                         {voiceAnalysis.speechRate >= 250 && voiceAnalysis.speechRate <= 450 && '✅ 適切な話速です'}
                         {voiceAnalysis.speechRate > 450 && '⚠️ 少し早すぎるかもしれません'}
                       </div>
+                      {!voiceCharacteristics ? (
+                        <button
+                          onClick={analyzeVoiceCharacteristics}
+                          disabled={isAnalyzingVoice}
+                          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                          {isAnalyzingVoice ? '🔄 声質分析中...' : '🎭 声質・印象分析'}
+                        </button>
+                      ) : (
+                        <div className="mt-4 p-4 bg-white rounded-lg border border-indigo-200">
+                          <h4 className="font-medium text-gray-800 mb-3">🎭 声質・印象分析結果</h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">声の高低:</span>
+                              <span className="font-medium">{voiceCharacteristics.pitch}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">全体印象:</span>
+                              <span className="font-medium">{voiceCharacteristics.impression}</span>
+                            </div>
+                            <div className="mt-3">
+                              <div className="text-gray-600 mb-1">特徴:</div>
+                              <div className="text-gray-800 italic">"{voiceCharacteristics.characterDescription}"</div>
+                            </div>
+                            {voiceCharacteristics.similarCelebrity && (
+                              <div className="mt-2">
+                                <div className="text-gray-600 mb-1">類似性:</div>
+                                <div className="text-gray-800">{voiceCharacteristics.similarCelebrity}のような</div>
+                              </div>
+                            )}
+                            <div className="mt-3 p-2 bg-gray-50 rounded">
+                              <div className="text-gray-700">{voiceCharacteristics.overallComment}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

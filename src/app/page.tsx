@@ -3,11 +3,19 @@
 import { useState } from 'react'
 import VoiceRecorder from '@/components/VoiceRecorder'
 
+interface VoiceAnalysis {
+  clarity: number // 1-10点
+  volume: number // 1-5点
+  speechRate: number // 文字/分
+  stability: number // 1-10点
+}
+
 interface Evaluation {
   scores: {
     friendship_score: number
     work_together_score: number
     total_score: number
+    voice_score?: number // 音声スコアを追加
   }
   feedback: {
     friendship_reason: string
@@ -23,6 +31,7 @@ export default function Home() {
   const [showProfileSection, setShowProfileSection] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [isGeneratingProfile, setIsGeneratingProfile] = useState(false)
+  const [voiceAnalysis, setVoiceAnalysis] = useState<VoiceAnalysis | null>(null)
 
   const handleTranscriptChange = (newTranscript: string) => {
     setTranscript(newTranscript)
@@ -37,6 +46,11 @@ export default function Home() {
     console.log('Recording state changed:', recordingState)
   }
 
+  const handleVoiceAnalysis = (analysis: VoiceAnalysis) => {
+    setVoiceAnalysis(analysis)
+    console.log('Voice analysis:', analysis)
+  }
+
   const evaluateTranscript = async () => {
     if (!transcript.trim()) return
     
@@ -47,7 +61,10 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ transcript }),
+        body: JSON.stringify({ 
+          transcript,
+          voiceAnalysis 
+        }),
       })
 
       if (!response.ok) {
@@ -56,6 +73,25 @@ export default function Home() {
       }
 
       const data = await response.json()
+      
+      // 音声スコアを計算して追加
+      if (voiceAnalysis) {
+        const voiceScore = Math.round(
+          (voiceAnalysis.clarity * 0.3) + 
+          ((6 - Math.abs(voiceAnalysis.volume - 3)) * 2 * 0.2) + 
+          (voiceAnalysis.stability * 0.3) + 
+          (Math.min(10, Math.max(1, 10 - Math.abs(voiceAnalysis.speechRate - 350) / 50)) * 0.2)
+        )
+        data.scores.voice_score = voiceScore
+        
+        // 総合スコアを再計算（音声スコアを含む）
+        data.scores.total_score = Math.round(
+          (data.scores.friendship_score * 0.3) + 
+          (data.scores.work_together_score * 0.4) + 
+          (voiceScore * 0.3)
+        )
+      }
+      
       setEvaluation(data)
     } catch (error) {
       console.error('評価エラー:', error)
@@ -115,6 +151,7 @@ export default function Home() {
                 <VoiceRecorder 
                   onTranscriptChange={handleTranscriptChange}
                   onRecordingStateChange={handleRecordingStateChange}
+                  onVoiceAnalysis={handleVoiceAnalysis}
                 />
               </div>
 
@@ -140,13 +177,54 @@ export default function Home() {
                 </div>
               )}
 
+              {/* 音声分析結果 */}
+              {voiceAnalysis && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">📊 音声分析結果</h3>
+                  <div className="bg-gray-50 p-6 rounded-lg border space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-blue-600">{voiceAnalysis.clarity}/10</div>
+                        <div className="text-sm text-gray-600">聞き取りやすさ</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {voiceAnalysis.volume === 1 && '小さすぎ'}
+                          {voiceAnalysis.volume === 2 && 'やや小さ'}
+                          {voiceAnalysis.volume === 3 && '適切'}
+                          {voiceAnalysis.volume === 4 && 'やや大き'}
+                          {voiceAnalysis.volume === 5 && '大きすぎ'}
+                        </div>
+                        <div className="text-sm text-gray-600">音量適切性</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-purple-600">{voiceAnalysis.speechRate}</div>
+                        <div className="text-sm text-gray-600">話速 (文字/分)</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-orange-600">{voiceAnalysis.stability}/10</div>
+                        <div className="text-sm text-gray-600">声の安定性</div>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm text-gray-600 mb-1">推奨話速: 300-400文字/分</div>
+                      <div className="text-xs text-gray-500">
+                        {voiceAnalysis.speechRate < 250 && '⚠️ 少しゆっくりすぎるかもしれません'}
+                        {voiceAnalysis.speechRate >= 250 && voiceAnalysis.speechRate <= 450 && '✅ 適切な話速です'}
+                        {voiceAnalysis.speechRate > 450 && '⚠️ 少し早すぎるかもしれません'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* AI評価結果 */}
               {evaluation && (
                 <div>
                   <h3 className="text-lg font-semibold mb-4">3. AI評価結果</h3>
                   <div className="bg-gray-50 p-6 rounded-lg border space-y-4">
                     {/* スコア表示 */}
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className={`grid ${evaluation.scores.voice_score ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-center`}>
                       <div>
                         <div className="text-2xl font-bold text-blue-600">{evaluation.scores.friendship_score}</div>
                         <div className="text-sm text-gray-600">仲良くなりたい度</div>
@@ -155,6 +233,12 @@ export default function Home() {
                         <div className="text-2xl font-bold text-green-600">{evaluation.scores.work_together_score}</div>
                         <div className="text-sm text-gray-600">一緒に働きたい度</div>
                       </div>
+                      {evaluation.scores.voice_score && (
+                        <div>
+                          <div className="text-2xl font-bold text-orange-600">{evaluation.scores.voice_score}</div>
+                          <div className="text-sm text-gray-600">音声スコア</div>
+                        </div>
+                      )}
                       <div>
                         <div className="text-2xl font-bold text-purple-600">{evaluation.scores.total_score}</div>
                         <div className="text-sm text-gray-600">総合スコア</div>

@@ -2,12 +2,20 @@
 
 import { useState, useRef, useEffect } from 'react'
 
+interface VoiceAnalysis {
+  clarity: number // 1-10点
+  volume: number // 1-5点 (1:小さすぎる, 2:やや小さい, 3:適切, 4:やや大きい, 5:大きすぎる)
+  speechRate: number // 文字/分
+  stability: number // 1-10点 (声の安定性)
+}
+
 interface VoiceRecorderProps {
   onTranscriptChange: (transcript: string) => void
   onRecordingStateChange: (isRecording: boolean) => void
+  onVoiceAnalysis?: (analysis: VoiceAnalysis) => void
 }
 
-export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChange }: VoiceRecorderProps) {
+export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChange, onVoiceAnalysis }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [isSupported, setIsSupported] = useState(false)
@@ -17,6 +25,12 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const transcriptRef = useRef('')
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const dataArrayRef = useRef<Uint8Array | null>(null)
+  const startTimeRef = useRef<number>(0)
+  const volumeHistoryRef = useRef<number[]>([])
+  const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const initializeSpeechRecognition = () => {
     if (typeof window === 'undefined') return null
@@ -70,6 +84,82 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     return recognition
   }
 
+  const analyzeAudio = () => {
+    if (!analyserRef.current || !dataArrayRef.current) return
+
+    analyserRef.current.getByteFrequencyData(dataArrayRef.current)
+    
+    // 音量計算
+    let sum = 0
+    for (let i = 0; i < dataArrayRef.current.length; i++) {
+      sum += dataArrayRef.current[i]
+    }
+    const averageVolume = sum / dataArrayRef.current.length
+    volumeHistoryRef.current.push(averageVolume)
+    
+    // 履歴を最大500個に制限
+    if (volumeHistoryRef.current.length > 500) {
+      volumeHistoryRef.current.shift()
+    }
+  }
+
+  const calculateVoiceAnalysis = (): VoiceAnalysis => {
+    const transcript = transcriptRef.current
+    const recordingDuration = startTimeRef.current > 0 ? (Date.now() - startTimeRef.current) / 1000 / 60 : 1 // 分
+    const volumeHistory = volumeHistoryRef.current
+
+    // 話速分析 (文字数/分)
+    const speechRate = Math.round(transcript.length / recordingDuration)
+
+    // 音量分析 (1-5点)
+    const averageVolume = volumeHistory.length > 0 
+      ? volumeHistory.reduce((a, b) => a + b, 0) / volumeHistory.length 
+      : 0
+    
+    let volume = 3 // デフォルトは適切
+    if (averageVolume < 30) volume = 1 // 小さすぎる
+    else if (averageVolume < 60) volume = 2 // やや小さい
+    else if (averageVolume < 120) volume = 3 // 適切
+    else if (averageVolume < 180) volume = 4 // やや大きい
+    else volume = 5 // 大きすぎる
+
+    // 声の安定性 (1-10点) - 音量の変動から計算
+    let stability = 8 // デフォルト
+    if (volumeHistory.length > 10) {
+      const variance = volumeHistory.reduce((acc, vol, index, arr) => {
+        const avg = arr.reduce((a, b) => a + b, 0) / arr.length
+        return acc + Math.pow(vol - avg, 2)
+      }, 0) / volumeHistory.length
+      
+      const stdDev = Math.sqrt(variance)
+      
+      if (stdDev < 10) stability = 9
+      else if (stdDev < 20) stability = 8
+      else if (stdDev < 30) stability = 7
+      else if (stdDev < 40) stability = 6
+      else if (stdDev < 50) stability = 5
+      else stability = 4
+    }
+
+    // 明瞭度 (1-10点) - 話速と音量から推定
+    let clarity = 7 // デフォルト
+    const optimalSpeechRate = 350 // 適切な話速
+    const speechRateDiff = Math.abs(speechRate - optimalSpeechRate)
+    
+    if (speechRateDiff < 50 && volume === 3) clarity = 9
+    else if (speechRateDiff < 100 && volume >= 2 && volume <= 4) clarity = 8
+    else if (speechRateDiff < 150) clarity = 7
+    else if (speechRateDiff < 200) clarity = 6
+    else clarity = 5
+
+    return {
+      clarity,
+      volume,
+      speechRate,
+      stability
+    }
+  }
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     
@@ -95,6 +185,8 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const startRecording = async () => {
     try {
       setError(null)
+      startTimeRef.current = Date.now()
+      volumeHistoryRef.current = []
       
       // マイクアクセス許可を取得
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -104,6 +196,22 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
           sampleRate: 44100
         } 
       })
+
+      // Web Audio API セットアップ
+      const audioContext = new AudioContext()
+      const analyser = audioContext.createAnalyser()
+      const source = audioContext.createMediaStreamSource(stream)
+      
+      analyser.fftSize = 2048
+      analyser.smoothingTimeConstant = 0.8
+      source.connect(analyser)
+      
+      audioContextRef.current = audioContext
+      analyserRef.current = analyser
+      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount)
+      
+      // 定期的な音声分析開始
+      analysisIntervalRef.current = setInterval(analyzeAudio, 100)
 
       // MediaRecorder の設定
       const mediaRecorder = new MediaRecorder(stream, {
@@ -120,11 +228,28 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        // 必要に応じて音声ファイルを処理
         console.log('録音完了:', audioBlob)
+        
+        // 音声分析結果を計算
+        const voiceAnalysis = calculateVoiceAnalysis()
+        if (onVoiceAnalysis) {
+          onVoiceAnalysis(voiceAnalysis)
+        }
         
         // ストリームを停止
         stream.getTracks().forEach(track => track.stop())
+        
+        // AudioContextをクリーンアップ
+        if (audioContextRef.current) {
+          audioContextRef.current.close()
+          audioContextRef.current = null
+        }
+        
+        // 分析インターバルをクリア
+        if (analysisIntervalRef.current) {
+          clearInterval(analysisIntervalRef.current)
+          analysisIntervalRef.current = null
+        }
       }
 
       mediaRecorderRef.current = mediaRecorder

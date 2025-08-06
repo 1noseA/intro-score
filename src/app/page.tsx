@@ -63,6 +63,15 @@ export default function Home() {
     console.log('Voice analysis:', analysis)
   }
 
+  const handleClear = () => {
+    // すべての分析・評価結果をリセット
+    setEvaluation(null)
+    setVoiceAnalysis(null)
+    setVoiceCharacteristics(null)
+    setGeneratedProfile('')
+    setShowProfileSection(false)
+  }
+
   const analyzeVoiceCharacteristics = async () => {
     if (!voiceAnalysis || !transcript.trim()) return
     
@@ -144,7 +153,14 @@ export default function Home() {
       setEvaluation(data)
     } catch (error) {
       console.error('評価エラー:', error)
-      alert(error instanceof Error ? error.message : 'AI評価中にエラーが発生しました')
+      console.error('Full error details:', error)
+      
+      // ネットワークエラーの場合
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        alert('ネットワークエラーが発生しました。接続を確認してください。')
+      } else {
+        alert(error instanceof Error ? error.message : 'AI評価中にエラーが発生しました。しばらく待ってから再度お試しください。')
+      }
     } finally {
       setIsEvaluating(false)
     }
@@ -210,26 +226,21 @@ export default function Home() {
                   onTranscriptChange={handleTranscriptChange}
                   onRecordingStateChange={handleRecordingStateChange}
                   onVoiceAnalysis={handleVoiceAnalysis}
+                  onClear={handleClear}
                 />
               </div>
 
-              {/* アクションボタン */}
+              {/* AI評価ボタン */}
               {transcript && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">3. 分析・生成</h3>
-                  <div className="flex gap-4 justify-center">
+                  <h3 className="text-lg font-semibold mb-4">3. 分析・評価</h3>
+                  <div className="flex justify-center">
                     <button
                       onClick={evaluateTranscript}
                       disabled={isEvaluating}
                       className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isEvaluating ? '🔄 評価中...' : '🤖 AI評価実行'}
-                    </button>
-                    <button
-                      onClick={() => setShowProfileSection(!showProfileSection)}
-                      className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition-colors"
-                    >
-                      📱 Xプロフィール生成
                     </button>
                   </div>
                 </div>
@@ -315,7 +326,7 @@ export default function Home() {
               {/* AI評価結果 */}
               {evaluation && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">4. AI評価結果</h3>
+                  <h3 className="text-lg font-semibold mb-4">AI評価結果</h3>
                   {selectedPersona && (
                     <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="text-sm text-blue-700">
@@ -370,34 +381,64 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Xプロフィール生成（オプション） */}
-              {showProfileSection && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">オプション: Xプロフィール生成</h3>
-                  {!generatedProfile ? (
-                    <button
-                      onClick={generateProfile}
-                      disabled={isGeneratingProfile}
-                      className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGeneratingProfile ? '🔄 生成中...' : 'Xプロフィール生成'}
-                    </button>
-                  ) : (
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                      <p className="text-gray-800 mb-2">{generatedProfile}</p>
-                      <p className="text-sm text-gray-500 mb-2">文字数: {generatedProfile.length}/160</p>
+            </div>
+          </div>
+
+          {/* Xプロフィール生成ボタン */}
+          {transcript && !showProfileSection && (
+            <div className="text-center mb-8">
+              <button
+                onClick={() => setShowProfileSection(true)}
+                className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm"
+              >
+                📱 Xプロフィール生成
+              </button>
+              <p className="text-xs text-gray-400 mt-1">オプション：自己紹介からXのプロフィール文を生成</p>
+            </div>
+          )}
+
+          {/* Xプロフィール生成結果 */}
+          {showProfileSection && (
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto mb-8">
+              <h3 className="text-lg font-semibold mb-4 text-center">📱 Xプロフィール生成</h3>
+              {!generatedProfile ? (
+                <div className="text-center">
+                  <button
+                    onClick={generateProfile}
+                    disabled={isGeneratingProfile}
+                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isGeneratingProfile ? '🔄 生成中...' : '生成実行'}
+                  </button>
+                  <p className="text-sm text-gray-500 mt-2">160文字以内のXプロフィール文を生成します</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-gray-50 p-4 rounded-lg border">
+                    <p className="text-gray-800 mb-2">{generatedProfile}</p>
+                    <p className="text-sm text-gray-500 mb-3">文字数: {generatedProfile.length}/160</p>
+                    <div className="flex gap-2 justify-center">
                       <button
                         onClick={() => navigator.clipboard.writeText(generatedProfile)}
                         className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
                       >
                         📋 コピー
                       </button>
+                      <button
+                        onClick={() => {
+                          setGeneratedProfile('')
+                          setShowProfileSection(false)
+                        }}
+                        className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm"
+                      >
+                        閉じる
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
+          )}
 
           <div className="text-sm text-gray-500">
             <p>🎤 音声録音 → 📝 文字起こし → 🤖 AI評価 + 📱 Xプロフィール（オプション）</p>

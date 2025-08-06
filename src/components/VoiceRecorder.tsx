@@ -13,9 +13,10 @@ interface VoiceRecorderProps {
   onTranscriptChange: (transcript: string) => void
   onRecordingStateChange: (isRecording: boolean) => void
   onVoiceAnalysis?: (analysis: VoiceAnalysis) => void
+  onClear?: () => void
 }
 
-export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChange, onVoiceAnalysis }: VoiceRecorderProps) {
+export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChange, onVoiceAnalysis, onClear }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [isSupported, setIsSupported] = useState(false)
@@ -292,6 +293,11 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     if (recognitionRef.current) {
       recognitionRef.current.stop()
       recognitionRef.current = initializeSpeechRecognition()
+    }
+    
+    // メインページの状態もリセット
+    if (onClear) {
+      onClear()
     }
   }
 

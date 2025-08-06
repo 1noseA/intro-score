@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
 `
 
     const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text().trim()
+    const response = result.response
+    const text = (await response.text()).trim()
 
     // 文字数制限チェック
     const profile = text.length > 160 ? text.substring(0, 157) + '...' : text

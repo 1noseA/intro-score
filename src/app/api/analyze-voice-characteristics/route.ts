@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
 `
 
     const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text()
+    const response = result.response
+    const text = await response.text()
 
     // JSONを抽出
     let jsonText = text

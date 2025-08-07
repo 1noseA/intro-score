@@ -391,63 +391,48 @@ export default function Home() {
                 </div>
               )}
 
-            </div>
-          </div>
-
-          {/* Xプロフィール生成ボタン */}
-          {transcript && !showProfileSection && (
-            <div className="text-center mb-8">
-              <button
-                onClick={() => setShowProfileSection(true)}
-                className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm"
-              >
-                📱 Xプロフィール生成
-              </button>
-            </div>
-          )}
-
-          {/* Xプロフィール生成結果 */}
-          {showProfileSection && (
-            <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto mb-8">
-              <h3 className="text-lg font-semibold mb-4 text-center">📱 Xプロフィール生成</h3>
-              {!generatedProfile ? (
-                <div className="text-center">
-                  <button
-                    onClick={generateProfile}
-                    disabled={isGeneratingProfile}
-                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isGeneratingProfile ? '🔄 生成中...' : '生成実行'}
-                  </button>
-                  <p className="text-sm text-gray-500 mt-2">160文字以内のXプロフィール文を生成します</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg border">
-                    <p className="text-gray-800 mb-2">{generatedProfile}</p>
-                    <p className="text-sm text-gray-500 mb-3">文字数: {generatedProfile.length}/160</p>
-                    <div className="flex gap-2 justify-center">
+              {/* Xプロフィール生成セクション */}
+              {transcript && (
+                <div>
+                  {!generatedProfile ? (
+                    <div className="text-center">
                       <button
-                        onClick={() => navigator.clipboard.writeText(generatedProfile)}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
+                        onClick={generateProfile}
+                        disabled={isGeneratingProfile}
+                        className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        📋 コピー
-                      </button>
-                      <button
-                        onClick={() => {
-                          setGeneratedProfile('')
-                          setShowProfileSection(false)
-                        }}
-                        className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm"
-                      >
-                        閉じる
+                        {isGeneratingProfile ? '🔄 生成中...' : '📱 Xプロフィール生成'}
                       </button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-gray-50 p-6 rounded-lg border">
+                      <div className="space-y-4">
+                        <div className="bg-white p-4 rounded-lg border">
+                          <p className="text-gray-800 mb-2">{generatedProfile}</p>
+                          <p className="text-sm text-gray-500 mb-3">文字数: {generatedProfile.length}/160</p>
+                          <div className="flex gap-2 justify-center">
+                            <button
+                              onClick={() => navigator.clipboard.writeText(generatedProfile)}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
+                            >
+                              📋 コピー
+                            </button>
+                            <button
+                              onClick={() => setGeneratedProfile('')}
+                              className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm"
+                            >
+                              再生成
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
             </div>
-          )}
+          </div>
         </div>
       </div>
     </main>

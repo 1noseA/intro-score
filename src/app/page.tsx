@@ -251,30 +251,37 @@ export default function Home() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">📊 音声分析結果</h3>
                   <div className="bg-gray-50 p-6 rounded-lg border space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="grid grid-cols-5 gap-4 text-center">
                       <div>
-                        <div className="text-2xl font-bold text-blue-600">{voiceAnalysis.clarity}/10</div>
-                        <div className="text-sm text-gray-600">聞き取りやすさ</div>
+                        <div className="text-lg font-bold text-purple-600">
+                          {voiceCharacteristics?.pitch || '普通'}
+                        </div>
+                        <div className="text-sm text-gray-600">高さ</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-green-600">
+                        <div className="text-lg font-bold text-green-600">
                           {voiceAnalysis.volume === 1 && '小さすぎ'}
                           {voiceAnalysis.volume === 2 && 'やや小さ'}
                           {voiceAnalysis.volume === 3 && '適切'}
                           {voiceAnalysis.volume === 4 && 'やや大き'}
                           {voiceAnalysis.volume === 5 && '大きすぎ'}
                         </div>
-                        <div className="text-sm text-gray-600">音量適切性</div>
+                        <div className="text-sm text-gray-600">大きさ</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-purple-600">{voiceAnalysis.speechRate}</div>
-                        <div className="text-sm text-gray-600">話速 (文字/分)</div>
+                        <div className="text-lg font-bold text-blue-600">{voiceAnalysis.speechRate}</div>
+                        <div className="text-sm text-gray-600">話速</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-orange-600">{voiceAnalysis.stability}/10</div>
-                        <div className="text-sm text-gray-600">声の安定性</div>
+                        <div className="text-lg font-bold text-orange-600">{voiceAnalysis.clarity}/10</div>
+                        <div className="text-sm text-gray-600">明瞭度</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-indigo-600">{voiceAnalysis.stability}/10</div>
+                        <div className="text-sm text-gray-600">安定性</div>
                       </div>
                     </div>
+                    
                     <div className="text-center">
                       <div className="text-sm text-gray-600 mb-1">推奨話速: 300-400文字/分</div>
                       <div className="text-xs text-gray-500 mb-3">
@@ -291,43 +298,23 @@ export default function Home() {
                           {isAnalyzingVoice ? '🔄 声質分析中...' : '🎭 声質・印象分析'}
                         </button>
                       ) : (
-                        <div className="mt-4 p-6 bg-white rounded-lg border border-indigo-200 shadow-sm">
-                          <h4 className="font-semibold text-indigo-700 mb-4 text-lg flex items-center">
-                            🎭 声質・印象分析結果
-                          </h4>
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="bg-indigo-50 p-3 rounded-lg">
-                                <div className="text-sm font-medium text-indigo-600 mb-1">声の高低</div>
-                                <div className="text-lg font-semibold text-gray-800">{voiceCharacteristics.pitch}</div>
-                              </div>
-                              <div className="bg-green-50 p-3 rounded-lg">
-                                <div className="text-sm font-medium text-green-600 mb-1">全体印象</div>
-                                <div className="text-lg font-semibold text-gray-800">{voiceCharacteristics.impression}</div>
-                              </div>
+                        <div className="mt-4 space-y-3">
+                          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                            <div className="text-sm font-medium text-green-600 mb-2">声の印象</div>
+                            <div className="text-gray-700 text-base leading-relaxed">
+                              {voiceCharacteristics.impression}
+                              {voiceCharacteristics.similarCelebrity && (
+                                <span className="ml-2 text-gray-600">
+                                  （{voiceCharacteristics.similarCelebrity}のような声）
+                                </span>
+                              )}
                             </div>
-                            
-                            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                              <div className="text-sm font-medium text-purple-600 mb-2">声の特徴</div>
-                              <div className="text-gray-700 italic text-base leading-relaxed">
-                                "{voiceCharacteristics.characterDescription}"
-                              </div>
-                            </div>
-                            
-                            {voiceCharacteristics.similarCelebrity && (
-                              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                                <div className="text-sm font-medium text-orange-600 mb-2">類似性</div>
-                                <div className="text-gray-700 text-base">
-                                  {voiceCharacteristics.similarCelebrity}のような声
-                                </div>
-                              </div>
-                            )}
-                            
-                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                              <div className="text-sm font-medium text-blue-600 mb-2">総合コメント</div>
-                              <div className="text-gray-700 text-base leading-relaxed">
-                                {voiceCharacteristics.overallComment}
-                              </div>
+                          </div>
+                          
+                          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                            <div className="text-sm font-medium text-blue-600 mb-2">総合コメント</div>
+                            <div className="text-gray-700 text-base leading-relaxed">
+                              {voiceCharacteristics.overallComment}
                             </div>
                           </div>
                         </div>

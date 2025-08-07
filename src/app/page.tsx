@@ -298,24 +298,28 @@ export default function Home() {
                           {isAnalyzingVoice ? '🔄 声質分析中...' : '🎭 声質・印象分析'}
                         </button>
                       ) : (
-                        <div className="mt-4 space-y-3">
-                          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                            <div className="text-sm font-medium text-green-600 mb-2">声の印象</div>
-                            <div className="text-gray-700 text-base leading-relaxed">
+                        <div className="mt-4 space-y-4">
+                          <div className="bg-white p-4 rounded-lg border border-green-200">
+                            <h4 className="font-medium text-green-700 mb-2 flex items-center">
+                              🎭 声の印象
+                            </h4>
+                            <p className="text-gray-700 leading-relaxed">
                               {voiceCharacteristics.impression}
                               {voiceCharacteristics.similarCelebrity && (
                                 <span className="ml-2 text-gray-600">
                                   （{voiceCharacteristics.similarCelebrity}のような声）
                                 </span>
                               )}
-                            </div>
+                            </p>
                           </div>
                           
-                          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                            <div className="text-sm font-medium text-blue-600 mb-2">総合コメント</div>
-                            <div className="text-gray-700 text-base leading-relaxed">
+                          <div className="bg-white p-4 rounded-lg border border-blue-200">
+                            <h4 className="font-medium text-blue-700 mb-2 flex items-center">
+                              💬 総合コメント
+                            </h4>
+                            <p className="text-gray-700 leading-relaxed">
                               {voiceCharacteristics.overallComment}
-                            </div>
+                            </p>
                           </div>
                         </div>
                       )}

@@ -18,9 +18,12 @@ interface VoiceRecorderProps {
 
 export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChange, onVoiceAnalysis, onClear }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [isSupported, setIsSupported] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [waveformData, setWaveformData] = useState<number[]>(new Array(50).fill(0))
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
@@ -32,6 +35,8 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const startTimeRef = useRef<number>(0)
   const volumeHistoryRef = useRef<number[]>([])
   const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const waveformIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const initializeSpeechRecognition = () => {
     if (typeof window === 'undefined') return null
@@ -102,6 +107,33 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     if (volumeHistoryRef.current.length > 500) {
       volumeHistoryRef.current.shift()
     }
+  }
+
+  const updateWaveform = () => {
+    if (!analyserRef.current || !dataArrayRef.current) return
+
+    analyserRef.current.getByteFrequencyData(dataArrayRef.current)
+    
+    // 波形データを更新（50個のバーで表示）
+    const newWaveformData = []
+    const barCount = 50
+    const dataPerBar = Math.floor(dataArrayRef.current.length / barCount)
+    
+    for (let i = 0; i < barCount; i++) {
+      let sum = 0
+      for (let j = 0; j < dataPerBar; j++) {
+        sum += dataArrayRef.current[i * dataPerBar + j]
+      }
+      newWaveformData.push(sum / dataPerBar / 255) // 0-1の範囲に正規化
+    }
+    
+    setWaveformData(newWaveformData)
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   const calculateVoiceAnalysis = (): VoiceAnalysis => {
@@ -186,6 +218,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const startRecording = async () => {
     try {
       setError(null)
+      setRecordingTime(0)
       startTimeRef.current = Date.now()
       volumeHistoryRef.current = []
       
@@ -213,6 +246,21 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
       
       // 定期的な音声分析開始
       analysisIntervalRef.current = setInterval(analyzeAudio, 100)
+      
+      // 波形更新開始
+      waveformIntervalRef.current = setInterval(updateWaveform, 50)
+      
+      // タイマー開始
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => {
+          const newTime = prev + 1
+          // 5分（300秒）で自動停止
+          if (newTime >= 300) {
+            stopRecording()
+          }
+          return newTime
+        })
+      }, 1000)
 
       // MediaRecorder の設定
       const mediaRecorder = new MediaRecorder(stream, {
@@ -240,17 +288,8 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
         // ストリームを停止
         stream.getTracks().forEach(track => track.stop())
         
-        // AudioContextをクリーンアップ
-        if (audioContextRef.current) {
-          audioContextRef.current.close()
-          audioContextRef.current = null
-        }
-        
-        // 分析インターバルをクリア
-        if (analysisIntervalRef.current) {
-          clearInterval(analysisIntervalRef.current)
-          analysisIntervalRef.current = null
-        }
+        // すべてのインターバルをクリア
+        clearAllIntervals()
       }
 
       mediaRecorderRef.current = mediaRecorder
@@ -262,6 +301,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
       }
 
       setIsRecording(true)
+      setIsPaused(false)
       onRecordingStateChange(true)
 
     } catch (err) {
@@ -270,9 +310,81 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     }
   }
 
-  const stopRecording = () => {
+  const pauseRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop()
+      mediaRecorderRef.current.pause()
+    }
+    
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+    }
+    
+    // タイマーと波形更新を停止
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+    }
+    if (waveformIntervalRef.current) {
+      clearInterval(waveformIntervalRef.current)
+      waveformIntervalRef.current = null
+    }
+    
+    setIsPaused(true)
+    setWaveformData(new Array(50).fill(0)) // 波形をクリア
+  }
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      mediaRecorderRef.current.resume()
+    }
+    
+    // 音声認識を再開
+    if (recognitionRef.current) {
+      recognitionRef.current.start()
+    }
+    
+    // タイマーと波形更新を再開
+    timerIntervalRef.current = setInterval(() => {
+      setRecordingTime(prev => {
+        const newTime = prev + 1
+        if (newTime >= 300) {
+          stopRecording()
+        }
+        return newTime
+      })
+    }, 1000)
+    
+    waveformIntervalRef.current = setInterval(updateWaveform, 50)
+    
+    setIsPaused(false)
+  }
+
+  const clearAllIntervals = () => {
+    if (analysisIntervalRef.current) {
+      clearInterval(analysisIntervalRef.current)
+      analysisIntervalRef.current = null
+    }
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+    }
+    if (waveformIntervalRef.current) {
+      clearInterval(waveformIntervalRef.current)
+      waveformIntervalRef.current = null
+    }
+    
+    // AudioContextをクリーンアップ
+    if (audioContextRef.current) {
+      audioContextRef.current.close()
+      audioContextRef.current = null
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      if (mediaRecorderRef.current.state === 'recording' || mediaRecorderRef.current.state === 'paused') {
+        mediaRecorderRef.current.stop()
+      }
     }
 
     if (recognitionRef.current) {
@@ -280,14 +392,21 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     }
 
     setIsRecording(false)
+    setIsPaused(false)
+    setWaveformData(new Array(50).fill(0))
     onRecordingStateChange(false)
+    
+    clearAllIntervals()
   }
+
 
   const clearTranscript = () => {
     transcriptRef.current = ''
     setTranscript('')
     onTranscriptChange('')
     setError(null)
+    setRecordingTime(0)
+    setWaveformData(new Array(50).fill(0))
     
     // 音声認識をリセット
     if (recognitionRef.current) {
@@ -315,32 +434,89 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
 
   return (
     <div className="space-y-4">
+      {/* 録音時間とステータス */}
+      {(isRecording || isPaused || recordingTime > 0) && (
+        <div className="text-center space-y-2">
+          <div className="text-2xl font-mono text-gray-800">
+            {formatTime(recordingTime)}
+            {recordingTime >= 300 && <span className="text-red-500 ml-2">最大時間に到達</span>}
+          </div>
+          <div className="text-sm text-gray-600">
+            {isRecording && !isPaused && '🔴 録音中...'}
+            {isPaused && '⏸️ 一時停止中'}
+            {!isRecording && recordingTime > 0 && '⏹️ 録音完了'}
+          </div>
+        </div>
+      )}
+
+      {/* 音声波形表示 */}
+      {(isRecording || isPaused) && (
+        <div className="bg-gray-900 rounded-lg p-4">
+          <div className="flex items-end justify-center space-x-1 h-20">
+            {waveformData.map((amplitude, index) => (
+              <div
+                key={index}
+                className="bg-blue-400 rounded-t transition-all duration-75"
+                style={{
+                  height: `${Math.max(2, amplitude * 60)}px`,
+                  width: '3px'
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 録音コントロール */}
-      <div className="text-center">
-        <button
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={!isSupported}
-          className={`px-8 py-4 rounded-full font-medium transition-all duration-200 ${
-            isRecording 
-              ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg transform scale-105' 
-              : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-          {isRecording ? (
-            <>
-              <span className="inline-block w-3 h-3 bg-white rounded-full mr-2 animate-pulse"></span>
-              🔴 録音停止
-            </>
-          ) : (
-            '🎤 録音開始'
-          )}
-        </button>
-        
-        {isRecording && (
-          <p className="text-sm text-gray-600 mt-2">
-            録音中... 自己紹介をお話しください
-          </p>
+      <div className="text-center space-y-3">
+        {!isRecording && !isPaused ? (
+          // 録音開始状態
+          <button
+            onClick={startRecording}
+            disabled={!isSupported}
+            className="px-8 py-4 rounded-full font-medium transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            🎤 録音開始
+          </button>
+        ) : (
+          // 録音中・一時停止中の制御
+          <div className="flex gap-3 justify-center">
+            {isRecording && !isPaused && (
+              <>
+                <button
+                  onClick={pauseRecording}
+                  className="px-6 py-3 rounded-md font-medium transition-all duration-200 bg-yellow-600 text-white hover:bg-yellow-700"
+                >
+                  ⏸️ 一時停止
+                </button>
+                <button
+                  onClick={stopRecording}
+                  className="px-6 py-3 rounded-md font-medium transition-all duration-200 bg-red-600 text-white hover:bg-red-700"
+                >
+                  ⏹️ 停止
+                </button>
+              </>
+            )}
+            
+            {isPaused && (
+              <>
+                <button
+                  onClick={resumeRecording}
+                  className="px-6 py-3 rounded-md font-medium transition-all duration-200 bg-green-600 text-white hover:bg-green-700"
+                >
+                  ▶️ 再開
+                </button>
+                <button
+                  onClick={stopRecording}
+                  className="px-6 py-3 rounded-md font-medium transition-all duration-200 bg-red-600 text-white hover:bg-red-700"
+                >
+                  ⏹️ 停止
+                </button>
+              </>
+            )}
+          </div>
         )}
+        
       </div>
 
       {/* エラー表示 */}

@@ -291,29 +291,43 @@ export default function Home() {
                           {isAnalyzingVoice ? '🔄 声質分析中...' : '🎭 声質・印象分析'}
                         </button>
                       ) : (
-                        <div className="mt-4 p-4 bg-white rounded-lg border border-indigo-200">
-                          <h4 className="font-medium text-gray-800 mb-3">🎭 声質・印象分析結果</h4>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">声の高低:</span>
-                              <span className="font-medium">{voiceCharacteristics.pitch}</span>
+                        <div className="mt-4 p-6 bg-white rounded-lg border border-indigo-200 shadow-sm">
+                          <h4 className="font-semibold text-indigo-700 mb-4 text-lg flex items-center">
+                            🎭 声質・印象分析結果
+                          </h4>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="bg-indigo-50 p-3 rounded-lg">
+                                <div className="text-sm font-medium text-indigo-600 mb-1">声の高低</div>
+                                <div className="text-lg font-semibold text-gray-800">{voiceCharacteristics.pitch}</div>
+                              </div>
+                              <div className="bg-green-50 p-3 rounded-lg">
+                                <div className="text-sm font-medium text-green-600 mb-1">全体印象</div>
+                                <div className="text-lg font-semibold text-gray-800">{voiceCharacteristics.impression}</div>
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">全体印象:</span>
-                              <span className="font-medium">{voiceCharacteristics.impression}</span>
+                            
+                            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                              <div className="text-sm font-medium text-purple-600 mb-2">声の特徴</div>
+                              <div className="text-gray-700 italic text-base leading-relaxed">
+                                "{voiceCharacteristics.characterDescription}"
+                              </div>
                             </div>
-                            <div className="mt-3">
-                              <div className="text-gray-600 mb-1">特徴:</div>
-                              <div className="text-gray-800 italic">"{voiceCharacteristics.characterDescription}"</div>
-                            </div>
+                            
                             {voiceCharacteristics.similarCelebrity && (
-                              <div className="mt-2">
-                                <div className="text-gray-600 mb-1">類似性:</div>
-                                <div className="text-gray-800">{voiceCharacteristics.similarCelebrity}のような</div>
+                              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                                <div className="text-sm font-medium text-orange-600 mb-2">類似性</div>
+                                <div className="text-gray-700 text-base">
+                                  {voiceCharacteristics.similarCelebrity}のような声
+                                </div>
                               </div>
                             )}
-                            <div className="mt-3 p-2 bg-gray-50 rounded">
-                              <div className="text-gray-700">{voiceCharacteristics.overallComment}</div>
+                            
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                              <div className="text-sm font-medium text-blue-600 mb-2">総合コメント</div>
+                              <div className="text-gray-700 text-base leading-relaxed">
+                                {voiceCharacteristics.overallComment}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -359,22 +373,31 @@ export default function Home() {
                     </div>
                     
                     {/* フィードバック */}
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="font-medium text-gray-700 mb-1">👥 親しみやすさについて</h4>
-                        <p className="text-sm text-gray-600">{evaluation.feedback.friendship_reason}</p>
+                    <div className="space-y-4">
+                      <div className="bg-white p-4 rounded-lg border border-blue-200">
+                        <h4 className="font-medium text-blue-700 mb-2 flex items-center">
+                          👥 親しみやすさについて
+                        </h4>
+                        <p className="text-gray-700 leading-relaxed">{evaluation.feedback.friendship_reason}</p>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-gray-700 mb-1">💼 仕事での魅力について</h4>
-                        <p className="text-sm text-gray-600">{evaluation.feedback.work_reason}</p>
+                      <div className="bg-white p-4 rounded-lg border border-green-200">
+                        <h4 className="font-medium text-green-700 mb-2 flex items-center">
+                          💼 仕事での魅力について
+                        </h4>
+                        <p className="text-gray-700 leading-relaxed">{evaluation.feedback.work_reason}</p>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-gray-700 mb-1">💡 改善提案</h4>
-                        <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                      <div className="bg-white p-4 rounded-lg border border-orange-200">
+                        <h4 className="font-medium text-orange-700 mb-3 flex items-center">
+                          💡 改善提案
+                        </h4>
+                        <div className="space-y-2">
                           {evaluation.feedback.improvement_suggestions.map((suggestion, index) => (
-                            <li key={index}>{suggestion}</li>
+                            <div key={index} className="flex items-start">
+                              <span className="text-orange-500 font-bold mr-2 mt-0.5">{index + 1}.</span>
+                              <span className="text-gray-700 leading-relaxed">{suggestion}</span>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -393,7 +416,6 @@ export default function Home() {
               >
                 📱 Xプロフィール生成
               </button>
-              <p className="text-xs text-gray-400 mt-1">オプション：自己紹介からXのプロフィール文を生成</p>
             </div>
           )}
 

@@ -439,10 +439,6 @@ export default function Home() {
               )}
             </div>
           )}
-
-          <div className="text-sm text-gray-500">
-            <p>🎤 音声録音 → 📝 文字起こし → 🤖 AI評価 + 📱 Xプロフィール（オプション）</p>
-          </div>
         </div>
       </div>
     </main>

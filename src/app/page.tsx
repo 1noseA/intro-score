@@ -230,26 +230,18 @@ export default function Home() {
                 />
               </div>
 
-              {/* AI評価ボタン */}
-              {transcript && (
+
+              {/* 分析・評価セクション */}
+              {voiceAnalysis && (
                 <div>
                   <h3 className="text-lg font-semibold mb-4">3. 分析・評価</h3>
-                  <div className="flex justify-center">
-                    <button
-                      onClick={evaluateTranscript}
-                      disabled={isEvaluating}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isEvaluating ? '🔄 評価中...' : '🤖 AI評価実行'}
-                    </button>
-                  </div>
                 </div>
               )}
 
               {/* 音声分析結果 */}
               {voiceAnalysis && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">📊 音声分析結果</h3>
+                  <h4 className="text-lg font-semibold mb-4">📊 音声分析結果</h4>
                   <div className="bg-white p-6 rounded-lg border space-y-4">
                     <div className="grid grid-cols-5 gap-4 text-center">
                       <div>
@@ -330,10 +322,25 @@ export default function Home() {
                 </div>
               )}
 
+              {/* AI評価ボタン */}
+              {selectedPersona && transcript && voiceAnalysis && !evaluation && (
+                <div>
+                  <div className="flex justify-center">
+                    <button
+                      onClick={evaluateTranscript}
+                      disabled={isEvaluating}
+                      className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isEvaluating ? '🔄 評価中...' : '🤖 AI評価実行'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* AI評価結果 */}
               {evaluation && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">AI評価結果</h3>
+                  <h3 className="text-lg font-semibold mb-4">🤖 AI評価結果</h3>
                   {selectedPersona && (
                     <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="text-sm text-blue-700">

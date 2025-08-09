@@ -44,6 +44,7 @@ export default function Home() {
   const [voiceCharacteristics, setVoiceCharacteristics] = useState<VoiceCharacteristics | null>(null)
   const [isAnalyzingVoice, setIsAnalyzingVoice] = useState(false)
   const [selectedPersona, setSelectedPersona] = useState<AIPersona | null>(null)
+  const [isCopied, setIsCopied] = useState(false)
 
   const handleTranscriptChange = (newTranscript: string) => {
     setTranscript(newTranscript)
@@ -70,6 +71,18 @@ export default function Home() {
     setVoiceCharacteristics(null)
     setGeneratedProfile('')
     setShowProfileSection(false)
+    setIsCopied(false)
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedProfile)
+      setIsCopied(true)
+      // 2秒後に元に戻す
+      setTimeout(() => setIsCopied(false), 2000)
+    } catch (err) {
+      console.error('コピーに失敗しました:', err)
+    }
   }
 
   const analyzeVoiceCharacteristics = async () => {
@@ -425,10 +438,14 @@ export default function Home() {
                           <p className="text-sm text-gray-500 mb-3">文字数: {generatedProfile.length}/160</p>
                           <div className="flex gap-2 justify-center">
                             <button
-                              onClick={() => navigator.clipboard.writeText(generatedProfile)}
-                              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
+                              onClick={handleCopy}
+                              className={`px-4 py-2 rounded-md transition-colors text-sm ${
+                                isCopied 
+                                  ? 'bg-green-600 text-white hover:bg-green-700' 
+                                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                              }`}
                             >
-                              📋 コピー
+                              {isCopied ? '✅ コピー済み' : '📋 コピー'}
                             </button>
                             <button
                               onClick={() => setGeneratedProfile('')}

@@ -24,6 +24,8 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const [error, setError] = useState<string | null>(null)
   const [recordingTime, setRecordingTime] = useState(0)
   const [waveformData, setWaveformData] = useState<number[]>(new Array(50).fill(0))
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
@@ -37,6 +39,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const waveformIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const initializeSpeechRecognition = () => {
     if (typeof window === 'undefined') return null
@@ -279,6 +282,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
         console.log('録音完了:', audioBlob)
+        setAudioBlob(audioBlob)
         
         // 音声分析結果を計算
         const voiceAnalysis = calculateVoiceAnalysis()
@@ -408,6 +412,8 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     setError(null)
     setRecordingTime(0)
     setWaveformData(new Array(50).fill(0))
+    setAudioBlob(null)
+    chunksRef.current = []
     
     // 音声認識をリセット
     if (recognitionRef.current) {
@@ -418,6 +424,34 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     // メインページの状態もリセット
     if (onClear) {
       onClear()
+    }
+  }
+
+  const playRecording = () => {
+    if (audioBlob && !isPlaying) {
+      const audioUrl = URL.createObjectURL(audioBlob)
+      const audio = new Audio(audioUrl)
+      audioRef.current = audio
+      
+      audio.onplay = () => setIsPlaying(true)
+      audio.onended = () => {
+        setIsPlaying(false)
+        URL.revokeObjectURL(audioUrl)
+      }
+      audio.onerror = () => {
+        setIsPlaying(false)
+        URL.revokeObjectURL(audioUrl)
+        setError('音声の再生に失敗しました')
+      }
+      
+      audio.play().catch(err => {
+        setIsPlaying(false)
+        URL.revokeObjectURL(audioUrl)
+        setError('音声の再生に失敗しました')
+      })
+    } else if (isPlaying && audioRef.current) {
+      audioRef.current.pause()
+      setIsPlaying(false)
     }
   }
 
@@ -470,7 +504,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
 
       {/* 録音コントロール */}
       <div className="text-center space-y-3">
-        {!isRecording && !isPaused ? (
+        {!isRecording && !isPaused && !audioBlob ? (
           // 録音開始状態
           <button
             onClick={startRecording}
@@ -479,6 +513,23 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
           >
             🎤 録音開始
           </button>
+        ) : !isRecording && !isPaused && audioBlob ? (
+          // 録音完了状態 - 再録音・再生ボタン
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={clearTranscript}
+              className="px-6 py-3 rounded-md font-medium transition-all duration-200 bg-gray-600 text-white hover:bg-gray-700"
+            >
+              🔄 再録音
+            </button>
+            <button
+              onClick={playRecording}
+              disabled={!audioBlob}
+              className="px-6 py-3 rounded-md font-medium transition-all duration-200 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPlaying ? '⏸️ 停止' : '▶️ 再生'}
+            </button>
+          </div>
         ) : (
           // 録音中・一時停止中の制御
           <div className="flex gap-3 justify-center">
@@ -532,12 +583,14 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <h4 className="font-medium text-gray-700">文字起こし結果</h4>
-            <button
-              onClick={clearTranscript}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              クリア
-            </button>
+            {!audioBlob && (
+              <button
+                onClick={clearTranscript}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                クリア
+              </button>
+            )}
           </div>
           <textarea
             value={transcript}
@@ -548,7 +601,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
             className="w-full p-4 border rounded-lg h-32 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="文字起こし結果がここに表示されます..."
           />
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 text-right">
             文字数: {transcript.length} 文字
           </p>
         </div>

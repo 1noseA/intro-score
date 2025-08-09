@@ -142,11 +142,13 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const calculateVoiceAnalysis = (): VoiceAnalysis => {
     const transcript = transcriptRef.current
     const recordingDurationSeconds = startTimeRef.current > 0 ? (Date.now() - startTimeRef.current) / 1000 : 60 // 秒
-    const recordingDurationMinutes = Math.max(recordingDurationSeconds / 60, 0.1) // 最低0.1分として計算
+    const recordingDurationMinutes = recordingDurationSeconds / 60 // 実際の録音時間を使用（最低制限なし）
     const volumeHistory = volumeHistoryRef.current
 
-    // 話速分析 (文字数/分)
-    const speechRate = transcript.length > 0 ? Math.round(transcript.length / recordingDurationMinutes) : 0
+    // 話速分析 (文字数/分) - 10秒以内でも正確に計算
+    const speechRate = transcript.length > 0 && recordingDurationMinutes > 0 
+      ? Math.round(transcript.length / recordingDurationMinutes) 
+      : 0
 
     // 音量分析 (1-5点)
     const averageVolume = volumeHistory.length > 0 

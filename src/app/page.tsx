@@ -24,7 +24,7 @@ interface Evaluation {
     friendship_score: number
     work_together_score: number
     total_score: number
-    voice_score?: number // 音声スコアを追加
+    voice_score?: number // 音声スコア（100点満点）
   }
   feedback: {
     friendship_reason: string
@@ -132,13 +132,13 @@ export default function Home() {
 
       const data = await response.json()
       
-      // 音声スコアを計算して追加
+      // 音声スコアを計算して追加（100点満点）
       if (voiceAnalysis) {
         const voiceScore = Math.round(
-          (voiceAnalysis.clarity * 0.3) + 
-          ((6 - Math.abs(voiceAnalysis.volume - 3)) * 2 * 0.2) + 
-          (voiceAnalysis.stability * 0.3) + 
-          (Math.min(10, Math.max(1, 10 - Math.abs(voiceAnalysis.speechRate - 350) / 50)) * 0.2)
+          (voiceAnalysis.clarity * 10 * 0.3) + 
+          ((6 - Math.abs(voiceAnalysis.volume - 3)) * 2 * 10 * 0.2) + 
+          (voiceAnalysis.stability * 10 * 0.3) + 
+          (Math.min(10, Math.max(1, 10 - Math.abs(voiceAnalysis.speechRate - 350) / 50)) * 10 * 0.2)
         )
         data.scores.voice_score = voiceScore
         

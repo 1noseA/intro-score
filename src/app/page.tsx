@@ -338,6 +338,7 @@ export default function Home() {
               {/* AI評価ボタン */}
               {selectedPersona && transcript && voiceAnalysis && !evaluation && (
                 <div>
+                  <h4 className="text-sm text-gray-600 mb-2">AI評価実行</h4>
                   <div className="flex justify-center">
                     <button
                       onClick={evaluateTranscript}

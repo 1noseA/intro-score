@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from 'react'
 
 interface VoiceAnalysis {
   clarity: number // 1-10点
-  volume: number // 1-5点 (1:小さすぎる, 2:やや小さい, 3:適切, 4:やや大きい, 5:大きすぎる)
+  volume: number // 1-5点 (1:小さい, 2:やや小さい, 3:適切, 4:やや大きい, 5:大きい)
   speechRate: number // 文字/分
   stability: number // 1-10点 (声の安定性)
+  pitch: number // 1-5点 (1:低い, 2:やや低い, 3:普通, 4:やや高い, 5:高い)
 }
 
 interface VoiceRecorderProps {
@@ -191,11 +192,19 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     else if (speechRateDiff < 200) clarity = 6
     else clarity = 5
 
+    // 音程推定 (1-5点) - 音量と安定性から簡易推定
+    let pitch = 3 // デフォルトは普通
+    if (averageVolume > 100 && stability >= 7) pitch = 4 // やや高い
+    else if (averageVolume > 140) pitch = 5 // 高い
+    else if (averageVolume < 50 && stability >= 7) pitch = 2 // やや低い
+    else if (averageVolume < 30) pitch = 1 // 低い
+
     return {
       clarity,
       volume,
       speechRate,
-      stability
+      stability,
+      pitch
     }
   }
 

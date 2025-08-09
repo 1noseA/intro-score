@@ -9,6 +9,7 @@ interface VoiceAnalysis {
   volume: number // 1-5点
   speechRate: number // 文字/分
   stability: number // 1-10点
+  pitch: number // 1-5点
 }
 
 interface VoiceCharacteristics {
@@ -258,20 +259,24 @@ export default function Home() {
                   <div className="bg-white p-6 rounded-lg border space-y-4">
                     <div className="grid grid-cols-5 gap-4 text-center">
                       <div>
-                        <div className="text-lg font-bold text-purple-600">
-                          {voiceCharacteristics?.pitch || '普通'}
+                        <div className="text-lg font-bold text-green-600">
+                          {voiceAnalysis.volume === 1 && '小さい'}
+                          {voiceAnalysis.volume === 2 && 'やや小さい'}
+                          {voiceAnalysis.volume === 3 && '適切'}
+                          {voiceAnalysis.volume === 4 && 'やや大きい'}
+                          {voiceAnalysis.volume === 5 && '大きい'}
                         </div>
-                        <div className="text-sm text-gray-600">高さ</div>
+                        <div className="text-sm text-gray-600">音量</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-green-600">
-                          {voiceAnalysis.volume === 1 && '小さすぎ'}
-                          {voiceAnalysis.volume === 2 && 'やや小さ'}
-                          {voiceAnalysis.volume === 3 && '適切'}
-                          {voiceAnalysis.volume === 4 && 'やや大き'}
-                          {voiceAnalysis.volume === 5 && '大きすぎ'}
+                        <div className="text-lg font-bold text-purple-600">
+                          {voiceAnalysis.pitch === 1 && '低い'}
+                          {voiceAnalysis.pitch === 2 && 'やや低い'}
+                          {voiceAnalysis.pitch === 3 && '普通'}
+                          {voiceAnalysis.pitch === 4 && 'やや高い'}
+                          {voiceAnalysis.pitch === 5 && '高い'}
                         </div>
-                        <div className="text-sm text-gray-600">大きさ</div>
+                        <div className="text-sm text-gray-600">高低</div>
                       </div>
                       <div>
                         <div className="text-lg font-bold text-blue-600">{voiceAnalysis.speechRate}</div>

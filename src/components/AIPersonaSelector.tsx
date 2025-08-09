@@ -106,7 +106,7 @@ export default function AIPersonaSelector({ selectedPersona, onPersonaChange }: 
           <button
             key={persona.id}
             onClick={() => handlePresetSelect(persona)}
-            className={`p-4 rounded-lg border text-left transition-colors ${
+            className={`p-4 rounded-lg border text-left transition-colors flex flex-col items-start ${
               selectedPersona?.id === persona.id
                 ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 hover:border-gray-300'
@@ -120,7 +120,7 @@ export default function AIPersonaSelector({ selectedPersona, onPersonaChange }: 
         {/* カスタム人格ボタン */}
         <button
           onClick={handleShowCustomForm}
-          className={`p-4 rounded-lg border text-left transition-colors border-dashed ${
+          className={`p-4 rounded-lg border text-left transition-colors border-dashed flex flex-col items-start ${
             showCustomForm || selectedPersona?.type === 'custom'
               ? 'border-purple-500 bg-purple-50'
               : 'border-gray-300 hover:border-gray-400'

@@ -282,7 +282,7 @@ export default function Home() {
                       </div>
                     </div>
                     
-                    <div className="text-center">
+                    <div>
                       <div className="text-sm text-gray-600 mb-1">推奨話速: 300-400文字/分</div>
                       <div className="text-xs text-gray-500 mb-3">
                         {voiceAnalysis.speechRate < 250 && '⚠️ 少しゆっくりすぎるかもしれません'}
@@ -290,20 +290,22 @@ export default function Home() {
                         {voiceAnalysis.speechRate > 450 && '⚠️ 少し早すぎるかもしれません'}
                       </div>
                       {!voiceCharacteristics ? (
-                        <button
-                          onClick={analyzeVoiceCharacteristics}
-                          disabled={isAnalyzingVoice}
-                          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                        >
-                          {isAnalyzingVoice ? '🔄 声質分析中...' : '🎭 声質・印象分析'}
-                        </button>
+                        <div className="text-center">
+                          <button
+                            onClick={analyzeVoiceCharacteristics}
+                            disabled={isAnalyzingVoice}
+                            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                          >
+                            {isAnalyzingVoice ? '🔄 声質分析中...' : '🎭 声質・印象分析'}
+                          </button>
+                        </div>
                       ) : (
                         <div className="mt-4 space-y-4">
                           <div className="bg-white p-4 rounded-lg border border-green-200">
                             <h4 className="font-medium text-green-700 mb-2 flex items-center">
                               🎭 声の印象
                             </h4>
-                            <p className="text-gray-700 leading-relaxed">
+                            <p className="text-gray-700 leading-relaxed text-left">
                               {voiceCharacteristics.impression}
                               {voiceCharacteristics.similarCelebrity && (
                                 <span className="ml-2 text-gray-600">
@@ -317,7 +319,7 @@ export default function Home() {
                             <h4 className="font-medium text-blue-700 mb-2 flex items-center">
                               💬 総合コメント
                             </h4>
-                            <p className="text-gray-700 leading-relaxed">
+                            <p className="text-gray-700 leading-relaxed text-left">
                               {voiceCharacteristics.overallComment}
                             </p>
                           </div>
@@ -369,13 +371,13 @@ export default function Home() {
                         <h4 className="font-medium text-blue-700 mb-2 flex items-center">
                           👥 親しみやすさについて
                         </h4>
-                        <p className="text-gray-700 leading-relaxed">{evaluation.feedback.friendship_reason}</p>
+                        <p className="text-gray-700 leading-relaxed text-left">{evaluation.feedback.friendship_reason}</p>
                       </div>
                       <div className="bg-white p-4 rounded-lg border border-green-200">
                         <h4 className="font-medium text-green-700 mb-2 flex items-center">
                           💼 仕事での魅力について
                         </h4>
-                        <p className="text-gray-700 leading-relaxed">{evaluation.feedback.work_reason}</p>
+                        <p className="text-gray-700 leading-relaxed text-left">{evaluation.feedback.work_reason}</p>
                       </div>
                       <div className="bg-white p-4 rounded-lg border border-orange-200">
                         <h4 className="font-medium text-orange-700 mb-3 flex items-center">
@@ -385,7 +387,7 @@ export default function Home() {
                           {evaluation.feedback.improvement_suggestions.map((suggestion, index) => (
                             <div key={index} className="flex items-start">
                               <span className="text-orange-500 font-bold mr-2 mt-0.5">{index + 1}.</span>
-                              <span className="text-gray-700 leading-relaxed">{suggestion}</span>
+                              <span className="text-gray-700 leading-relaxed text-left">{suggestion}</span>
                             </div>
                           ))}
                         </div>

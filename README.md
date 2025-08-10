@@ -3,7 +3,7 @@ AI音声分析による自己紹介スキル向上支援アプリ
 
 コミュニティ「おだいで.dev」#1 自己紹介 で作成
 
-**🔗 URL:**https://intro-score.vercel.app/
+**🔗 URL:** https://intro-score.vercel.app/  
 ※認証機能・DB機能はないため個人情報や入力情報は保存されず、安心してお試しいただけます。
 
 ## 目的

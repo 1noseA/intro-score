@@ -27,6 +27,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const [waveformData, setWaveformData] = useState<number[]>(new Array(50).fill(0))
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [pendingAnalysis, setPendingAnalysis] = useState(false)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
@@ -41,6 +42,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const waveformIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const pendingAnalysisRef = useRef<boolean>(false)
 
   const initializeSpeechRecognition = () => {
     if (typeof window === 'undefined') return null
@@ -67,10 +69,29 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
         }
       }
 
+      console.log('音声認識結果 - final:', finalTranscript, 'interim:', interimTranscript)
+
       if (finalTranscript) {
         transcriptRef.current += finalTranscript
         setTranscript(transcriptRef.current)
         onTranscriptChange(transcriptRef.current + interimTranscript)
+        console.log('transcriptRef更新後:', transcriptRef.current)
+        
+        // 録音停止後で音声分析待ちの場合、音声分析を実行
+        if (pendingAnalysisRef.current) {
+          console.log('録音停止後の最終音声認識結果を受信、音声分析を実行')
+          pendingAnalysisRef.current = false
+          setPendingAnalysis(false)
+          
+          // 少し遅延させて音声分析を実行
+          setTimeout(() => {
+            const voiceAnalysis = calculateVoiceAnalysis()
+            console.log('遅延実行音声分析結果:', voiceAnalysis)
+            if (onVoiceAnalysis) {
+              onVoiceAnalysis(voiceAnalysis)
+            }
+          }, 100)
+        }
       } else {
         onTranscriptChange(transcriptRef.current + interimTranscript)
       }
@@ -141,15 +162,29 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   }
 
   const calculateVoiceAnalysis = (): VoiceAnalysis => {
-    const transcript = transcriptRef.current
-    const recordingDurationSeconds = startTimeRef.current > 0 ? (Date.now() - startTimeRef.current) / 1000 : 60 // 秒
-    const recordingDurationMinutes = recordingDurationSeconds / 60 // 実際の録音時間を使用（最低制限なし）
+    // stateのtranscriptとrefのtranscriptを両方チェック
+    const refTranscript = transcriptRef.current
+    const stateTranscript = transcript
+    const finalTranscript = stateTranscript || refTranscript // より長い方を使用
+    
+    const recordingDurationSeconds = startTimeRef.current > 0 ? (Date.now() - startTimeRef.current) / 1000 : 1 // デフォルト1秒
+    const recordingDurationMinutes = Math.max(recordingDurationSeconds / 60, 0.01) // 最低0.01分（0.6秒）として計算
     const volumeHistory = volumeHistoryRef.current
 
-    // 話速分析 (文字数/分) - 10秒以内でも正確に計算
-    const speechRate = transcript.length > 0 && recordingDurationMinutes > 0 
-      ? Math.round(transcript.length / recordingDurationMinutes) 
+    // 話速分析 (文字数/分) - 短時間でも計算可能
+    const speechRate = finalTranscript.length > 0 
+      ? Math.round(finalTranscript.length / recordingDurationMinutes) 
       : 0
+    
+    console.log('Voice Analysis Debug:', {
+      refTranscriptLength: refTranscript.length,
+      stateTranscriptLength: stateTranscript.length,
+      finalTranscriptLength: finalTranscript.length,
+      recordingDurationSeconds,
+      recordingDurationMinutes,
+      speechRate,
+      startTime: startTimeRef.current
+    })
 
     // 音量分析 (1-5点)
     const averageVolume = volumeHistory.length > 0 
@@ -235,6 +270,7 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
       setError(null)
       setRecordingTime(0)
       startTimeRef.current = Date.now()
+      console.log('録音開始時刻設定:', startTimeRef.current)
       volumeHistoryRef.current = []
       
       // マイクアクセス許可を取得
@@ -291,14 +327,42 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
       }
 
       mediaRecorder.onstop = () => {
+        console.log('=== 録音停止処理開始 ===')
+        console.log('現在のtranscript state:', transcript)
+        console.log('transcriptRef.current:', transcriptRef.current)
+        console.log('startTimeRef.current:', startTimeRef.current)
+        
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
         console.log('録音完了:', audioBlob)
         setAudioBlob(audioBlob)
         
-        // 音声分析結果を計算
-        const voiceAnalysis = calculateVoiceAnalysis()
-        if (onVoiceAnalysis) {
-          onVoiceAnalysis(voiceAnalysis)
+        // すぐに音声分析を実行（transcript stateまたはrefのどちらかにデータがあれば）
+        const currentTranscript = transcript || transcriptRef.current
+        if (currentTranscript.length > 0) {
+          console.log('既存のtranscriptで音声分析を実行')
+          const voiceAnalysis = calculateVoiceAnalysis()
+          console.log('音声分析結果:', voiceAnalysis)
+          if (onVoiceAnalysis) {
+            onVoiceAnalysis(voiceAnalysis)
+          }
+        } else {
+          console.log('音声認識の最終結果を待機中...')
+          pendingAnalysisRef.current = true
+          setPendingAnalysis(true)
+          
+          // フォールバック: 1.5秒後に強制的に音声分析を実行
+          setTimeout(() => {
+            if (pendingAnalysisRef.current) {
+              console.log('フォールバック: 音声分析を強制実行')
+              pendingAnalysisRef.current = false
+              setPendingAnalysis(false)
+              const voiceAnalysis = calculateVoiceAnalysis()
+              console.log('フォールバック音声分析結果:', voiceAnalysis)
+              if (onVoiceAnalysis) {
+                onVoiceAnalysis(voiceAnalysis)
+              }
+            }
+          }, 1500)
         }
         
         // ストリームを停止
@@ -397,6 +461,9 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   }
 
   const stopRecording = () => {
+    // 現在のtranscriptをrefに保存（音声認識の最終結果を確実に保存）
+    transcriptRef.current = transcript
+
     if (mediaRecorderRef.current) {
       if (mediaRecorderRef.current.state === 'recording' || mediaRecorderRef.current.state === 'paused') {
         mediaRecorderRef.current.stop()

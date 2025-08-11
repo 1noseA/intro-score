@@ -46,6 +46,7 @@ export default function Home() {
   const [isAnalyzingVoice, setIsAnalyzingVoice] = useState(false)
   const [selectedPersona, setSelectedPersona] = useState<AIPersona | null>(null)
   const [isCopied, setIsCopied] = useState(false)
+  const [isRecordingActive, setIsRecordingActive] = useState(false)
 
   const handleTranscriptChange = (newTranscript: string) => {
     setTranscript(newTranscript)
@@ -58,6 +59,7 @@ export default function Home() {
   const handleRecordingStateChange = (recordingState: boolean) => {
     // 録音状態の変更時の処理（必要に応じて実装）
     console.log('Recording state changed:', recordingState)
+    setIsRecordingActive(recordingState)
   }
 
   const handleVoiceAnalysis = (analysis: VoiceAnalysis) => {
@@ -73,6 +75,7 @@ export default function Home() {
     setGeneratedProfile('')
     setShowProfileSection(false)
     setIsCopied(false)
+    setIsRecordingActive(false)
   }
 
   const handleCopy = async () => {
@@ -424,7 +427,7 @@ export default function Home() {
               )}
 
               {/* Xプロフィール生成セクション */}
-              {transcript && (
+              {transcript && !isRecordingActive && (
                 <div>
                   {!generatedProfile ? (
                     <div className="text-center">

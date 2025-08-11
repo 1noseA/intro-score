@@ -69,15 +69,20 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
         }
       }
 
-
-      // リアルタイム表示のために常にstateを更新
+      // 確定済みテキスト + 暫定テキストを表示
       const currentFullTranscript = transcriptRef.current + interimTranscript
+      
+      // 常に現在の完全なテキストを表示（沈黙時でも確定済み部分は残る）
       setTranscript(currentFullTranscript)
       onTranscriptChange(currentFullTranscript)
 
+      // 確定されたテキストがある場合のみrefを更新
       if (finalTranscript) {
-        // 最終結果のみrefに保存
         transcriptRef.current += finalTranscript
+        
+        // 更新後、確定済みテキストのみでも再表示（暫定テキストがクリアされた場合の保険）
+        setTranscript(transcriptRef.current)
+        onTranscriptChange(transcriptRef.current)
         
         // 録音停止後で音声分析待ちの場合、音声分析を実行
         if (pendingAnalysisRef.current) {
@@ -101,10 +106,17 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
     }
 
     recognition.onend = () => {
+      // 録音中の場合は自動的に音声認識を再開
+      // ただし、状態をリセットしない
       if (isRecording) {
         setTimeout(() => {
           if (recognitionRef.current && isRecording) {
-            recognitionRef.current.start()
+            try {
+              recognitionRef.current.start()
+            } catch (error) {
+              // 音声認識の再開に失敗した場合はエラーを設定
+              setError('音声認識の再開に失敗しました')
+            }
           }
         }, 100)
       }

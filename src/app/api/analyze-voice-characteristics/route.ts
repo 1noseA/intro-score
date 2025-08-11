@@ -88,8 +88,6 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json(voiceCharacteristics)
     } catch (parseError) {
-      console.error('JSON parse error:', parseError)
-      console.error('Raw response:', text)
       
       return NextResponse.json(
         { error: '声質分析の解析に失敗しました' },
@@ -98,7 +96,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Voice characteristics analysis error:', error)
     return NextResponse.json(
       { error: '声質分析中にエラーが発生しました' },
       { status: 500 }

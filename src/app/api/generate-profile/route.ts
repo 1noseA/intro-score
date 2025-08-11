@@ -56,7 +56,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Profile generation error:', error)
     return NextResponse.json(
       { error: 'プロフィール生成中にエラーが発生しました' },
       { status: 500 }

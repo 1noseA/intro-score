@@ -58,13 +58,11 @@ export default function Home() {
 
   const handleRecordingStateChange = (recordingState: boolean) => {
     // 録音状態の変更時の処理（必要に応じて実装）
-    console.log('Recording state changed:', recordingState)
     setIsRecordingActive(recordingState)
   }
 
   const handleVoiceAnalysis = (analysis: VoiceAnalysis) => {
     setVoiceAnalysis(analysis)
-    console.log('Voice analysis:', analysis)
   }
 
   const handleClear = () => {

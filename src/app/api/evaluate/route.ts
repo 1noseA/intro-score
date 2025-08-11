@@ -95,9 +95,6 @@ ${personaPrompt}
 
       return NextResponse.json(evaluation)
     } catch (parseError) {
-      console.error('JSON parse error:', parseError)
-      console.error('Raw response:', text)
-      console.error('Extracted JSON text:', jsonText)
       
       // フォールバック評価を返す
       const fallbackEvaluation = {
@@ -121,7 +118,6 @@ ${personaPrompt}
     }
 
   } catch (error) {
-    console.error('Evaluation error:', error)
     return NextResponse.json(
       { error: 'AI評価中にエラーが発生しました' },
       { status: 500 }

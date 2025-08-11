@@ -69,7 +69,6 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
         }
       }
 
-      console.log('音声認識結果 - final:', finalTranscript, 'interim:', interimTranscript)
 
       // リアルタイム表示のために常にstateを更新
       const currentFullTranscript = transcriptRef.current + interimTranscript
@@ -79,18 +78,15 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
       if (finalTranscript) {
         // 最終結果のみrefに保存
         transcriptRef.current += finalTranscript
-        console.log('transcriptRef更新後:', transcriptRef.current)
         
         // 録音停止後で音声分析待ちの場合、音声分析を実行
         if (pendingAnalysisRef.current) {
-          console.log('録音停止後の最終音声認識結果を受信、音声分析を実行')
           pendingAnalysisRef.current = false
           setPendingAnalysis(false)
           
           // 少し遅延させて音声分析を実行
           setTimeout(() => {
             const voiceAnalysis = calculateVoiceAnalysis()
-            console.log('遅延実行音声分析結果:', voiceAnalysis)
             if (onVoiceAnalysis) {
               onVoiceAnalysis(voiceAnalysis)
             }
@@ -178,15 +174,6 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
       ? Math.round(finalTranscript.length / recordingDurationMinutes) 
       : 0
     
-    console.log('Voice Analysis Debug:', {
-      refTranscriptLength: refTranscript.length,
-      stateTranscriptLength: stateTranscript.length,
-      finalTranscriptLength: finalTranscript.length,
-      recordingDurationSeconds,
-      recordingDurationMinutes,
-      speechRate,
-      startTime: startTimeRef.current
-    })
 
     // 音量分析 (1-5点)
     const averageVolume = volumeHistory.length > 0 
@@ -272,7 +259,6 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
       setError(null)
       setRecordingTime(0)
       startTimeRef.current = Date.now()
-      console.log('録音開始時刻設定:', startTimeRef.current)
       volumeHistoryRef.current = []
       
       // マイクアクセス許可を取得
@@ -329,37 +315,27 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
       }
 
       mediaRecorder.onstop = () => {
-        console.log('=== 録音停止処理開始 ===')
-        console.log('現在のtranscript state:', transcript)
-        console.log('transcriptRef.current:', transcriptRef.current)
-        console.log('startTimeRef.current:', startTimeRef.current)
         
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        console.log('録音完了:', audioBlob)
         setAudioBlob(audioBlob)
         
         // すぐに音声分析を実行（transcript stateまたはrefのどちらかにデータがあれば）
         const currentTranscript = transcript || transcriptRef.current
         if (currentTranscript.length > 0) {
-          console.log('既存のtranscriptで音声分析を実行')
           const voiceAnalysis = calculateVoiceAnalysis()
-          console.log('音声分析結果:', voiceAnalysis)
           if (onVoiceAnalysis) {
             onVoiceAnalysis(voiceAnalysis)
           }
         } else {
-          console.log('音声認識の最終結果を待機中...')
           pendingAnalysisRef.current = true
           setPendingAnalysis(true)
           
           // フォールバック: 1.5秒後に強制的に音声分析を実行
           setTimeout(() => {
             if (pendingAnalysisRef.current) {
-              console.log('フォールバック: 音声分析を強制実行')
               pendingAnalysisRef.current = false
               setPendingAnalysis(false)
               const voiceAnalysis = calculateVoiceAnalysis()
-              console.log('フォールバック音声分析結果:', voiceAnalysis)
               if (onVoiceAnalysis) {
                 onVoiceAnalysis(voiceAnalysis)
               }

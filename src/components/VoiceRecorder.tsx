@@ -71,10 +71,14 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
 
       console.log('音声認識結果 - final:', finalTranscript, 'interim:', interimTranscript)
 
+      // リアルタイム表示のために常にstateを更新
+      const currentFullTranscript = transcriptRef.current + interimTranscript
+      setTranscript(currentFullTranscript)
+      onTranscriptChange(currentFullTranscript)
+
       if (finalTranscript) {
+        // 最終結果のみrefに保存
         transcriptRef.current += finalTranscript
-        setTranscript(transcriptRef.current)
-        onTranscriptChange(transcriptRef.current + interimTranscript)
         console.log('transcriptRef更新後:', transcriptRef.current)
         
         // 録音停止後で音声分析待ちの場合、音声分析を実行
@@ -92,8 +96,6 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
             }
           }, 100)
         }
-      } else {
-        onTranscriptChange(transcriptRef.current + interimTranscript)
       }
     }
 

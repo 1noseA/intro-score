@@ -342,7 +342,7 @@ export default function Home() {
               )}
 
               {/* AI評価ボタン */}
-              {selectedPersona && transcript && voiceAnalysis && !evaluation && (
+              {transcript && voiceAnalysis && !evaluation && (
                 <div>
                   <div className="flex justify-center">
                     <button

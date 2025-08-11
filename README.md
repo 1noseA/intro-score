@@ -26,3 +26,34 @@ AI音声分析による自己紹介スキル向上支援アプリ
 - **AI**: Google Gemini API
 - **音声処理**: Web Speech API, Web Audio API
 - **デプロイ**: Vercel
+
+## 開発環境セットアップ
+```bash
+git clone https://github.com/your-username/intro-score.git
+cd intro-score
+npm install
+# .env.localにGEMINI_API_KEYを設定
+npm run dev  # http://localhost:3000
+```
+
+## ディレクトリ構成
+```
+intro-score/
+├── docs/
+│   ├── api-specification.md # API仕様書
+│   └── requirements.md      # 要件定義書
+├── src/
+│   ├── app/
+│   │   ├── api/             # API Routes
+│   │   ├── layout.tsx       # ルートレイアウト
+│   │   └── page.tsx         # メインページ
+│   ├── components/          # 音声録音・AI評価コンポーネント
+│   └── types/               # TypeScript型定義
+├── CLAUDE.md                # Claude Code用の開発ガイド
+├── next.config.js           # Next.js設定
+├── package.json             # パッケージ情報
+└── tailwind.config.js       # TailwindCSS設定
+```
+
+## アプリ画像
+<img width="2880" height="5806" alt="Image" src="https://github.com/user-attachments/assets/4a5e3161-367d-420e-b4f3-5c8f95432cbf" />

@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
 
     const prompt = `
 以下はエンジニアの自己紹介の音声を文字起こししたものです。この内容をもとに、X（Twitter）のプロフィール文を作成してください。

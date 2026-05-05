@@ -451,9 +451,6 @@ export default function VoiceRecorder({ onTranscriptChange, onRecordingStateChan
   }
 
   const stopRecording = () => {
-    // 現在のtranscriptをrefに保存（音声認識の最終結果を確実に保存）
-    transcriptRef.current = transcript
-
     if (mediaRecorderRef.current) {
       if (mediaRecorderRef.current.state === 'recording' || mediaRecorderRef.current.state === 'paused') {
         mediaRecorderRef.current.stop()
